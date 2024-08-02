@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.table import Table
 from my_calendar.calendar import display_calendar, add_event, modify_event, remove_event
 from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task
-from notes.notes import display_notes, add_note, modify_note
+from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder
 from habits.habits import display_habits, add_habit, delete_habit, view_habit_info, mark_habit_done
 from students.students import display_students, add_student, delete_student, mark_attendance, display_receipts
 
@@ -32,7 +32,7 @@ def main():
     current_date = datetime.now()
     while True:
         display_monthly_calendar(current_date)
-        console.print("[bold #FC6C85]Menu:[/bold #FC6C85] (cal, tasks, note, habits, students, next, prev, exit)")
+        console.print("[bold #FC6C85]Menu:[/bold #FC6C85] (cal, tasks, notes, habits, students, next, prev, exit)")
         choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]")
 
         if choice == "next":
@@ -72,15 +72,20 @@ def main():
                     delete_task()
                 elif task_choice == "back":
                     break
-        elif choice == "note":
+        elif choice == "notes":
             while True:
-                display_notes()
-                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (add, modify, back)")
+                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (newfolder, newnote, deletefolder, deletenote, show, back)")
                 note_choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]")
-                if note_choice == "add":
-                    add_note()
-                elif note_choice == "modify":
-                    modify_note()
+                if note_choice == "newfolder":
+                    new_folder()
+                elif note_choice == "newnote":
+                    new_note()
+                elif note_choice == "deletefolder":
+                    delete_folder()
+                elif note_choice == "deletenote":
+                    delete_note()
+                elif note_choice == "show":
+                    display_notes_tree()
                 elif note_choice == "back":
                     break
         elif choice == "habits":
