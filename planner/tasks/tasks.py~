@@ -1,0 +1,52 @@
+import json
+import os
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+tasks_data = []
+tasks_file = "tasks_data.json"
+
+def load_tasks():
+    global tasks_data
+    if os.path.exists(tasks_file):
+        with open(tasks_file, 'r') as f:
+            tasks_data = json.load(f)
+
+def save_tasks():
+    with open(tasks_file, 'w') as f:
+        json.dump(tasks_data, f)
+
+def display_tasks():
+    load_tasks()
+    table = Table(title="Tasks", style="bold #FC6C85")
+    table.add_column("ID", justify="center", style="#FC6C85")
+    table.add_column("Task", justify="left", style="#FC6C85")
+    table.add_column("Status", justify="center", style="#FC6C85")
+    
+    for i, task in enumerate(tasks_data):
+        table.add_row(str(i), task["task"], "Done" if task["done"] else "Not Done")
+    
+    console.print(table)
+
+def add_task():
+    load_tasks()
+    task = console.input("[#FC6C85]Task: [/#FC6C85]")
+    tasks_data.append({"task": task, "done": False})
+    save_tasks()
+    console.print("[bold #FC6C85]Task added successfully![/bold #FC6C85]")
+
+def modify_task():
+    display_tasks()
+    task_id = int(console.input("[#FC6C85]Enter task ID to modify: [/#FC6C85]"))
+    new_task = console.input("[#FC6C85]Enter new task: [/#FC6C85]")
+    tasks_data[task_id]["task"] = new_task
+    save_tasks()
+    console.print("[bold #FC6C85]Task modified successfully![/bold #FC6C85]")
+
+def mark_task_done():
+    display_tasks()
+    task_id = int(console.input("[#FC6C85]Enter task ID to mark as done: [/#FC6C85]"))
+    tasks_data[task_id]["done"] = True
+    save_tasks()
+    console.print("[bold #FC6C85]Task marked as done![/bold #FC6C85]")

@@ -1,0 +1,58 @@
+Terminal Planner Project
+
+Overview
+
+This project is a terminal-based planner application that combines a calendar, task manager, note-taking system, and habit tracker. It is built using Python and the `rich` library for creating visually appealing text-based interfaces. The application allows users to manage their schedule, tasks, notes, and daily habits through a simple command-line interface.
+
+Features
+
+Monthly Calendar View
+Implementation: Uses the `calendar` module to generate a text-based calendar for the current month. The `rich` library's `Table` class is used to format and display the calendar.
+Functionality: Displays a monthly calendar with the current date highlighted. Users can navigate to the next or previous month using the `next` and `prev` commands.
+
+Weekly Calendar View
+Implementation: Displays a weekly view of the calendar using the `rich` library's `Table` class. Events are stored in a JSON file and loaded into the calendar.
+Functionality: Users can add, modify, and remove events. Events are displayed in the weekly calendar view, with timeslots occupied by events shown in a different color.
+
+Task Manager
+Implementation: Tasks are stored in a JSON file. The `rich` library is used to display tasks in a formatted table.
+Functionality: Users can add, modify, mark tasks as done, and view all tasks. Completed tasks are visually distinguished in the task list.
+
+Note-Taking System
+Implementation: Notes are stored in a JSON file. The `rich` library is used to display notes in a formatted table.
+Functionality: Users can add, modify, and view notes. Each note is stored in a separate text file, which can be edited using the default text editor.
+
+Habit Tracker
+Implementation: Habits are stored in a JSON file. The `rich` library's `Table` class is used to display a monthly grid showing habit completion status.
+Functionality: Users can add, delete, and mark habits as done. Users can also view and edit habit details, which are stored in separate text files.
+
+Code Structure
+
+main.py
+Entry point of the application.
+Displays the main menu and handles user input for navigating between different features (calendar, tasks, notes, habits).
+Contains the `display_monthly_calendar` and `main` functions.
+
+my_calendar/calendar.py
+Contains functions for managing the calendar (`display_calendar`, `add_event`, `modify_event`, `remove_event`).
+Uses a JSON file to store and load event data.
+Displays a weekly calendar with events using the `rich` library.
+
+tasks/tasks.py
+Contains functions for managing tasks (`display_tasks`, `add_task`, `modify_task`, `mark_task_done`).
+Uses a JSON file to store and load task data.
+Displays tasks in a formatted table using the `rich` library.
+
+notes/notes.py
+Contains functions for managing notes (`display_notes`, `add_note`, `modify_note`).
+Uses a JSON file to store and load note data.
+Each note is stored in a separate text file for detailed editing.
+
+habits/habits.py
+Contains functions for managing habits (`display_habits`, `add_habit`, `delete_habit`, `view_habit_info`, `mark_habit_done`).
+Uses a JSON file to store and load habit data.
+Displays a monthly grid showing habit completion status using the `rich` library.
+Each habit has a details file that can be edited using the default text editor.
+Summary
+
+The Terminal Planner Project is a Python-based command-line application that integrates a calendar, task manager, note-taking system, and habit tracker into a single tool. It leverages the `rich` library to create a visually appealing text-based interface. Users can manage their schedule, tasks, notes, and daily habits through simple commands. Events and tasks are stored in JSON files, while notes and habit details are stored in separate text files for detailed editing. This project provides a comprehensive and interactive way to organize personal information directly from the terminal.
