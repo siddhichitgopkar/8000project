@@ -46,9 +46,17 @@ def display_calendar(week_start):
             time_slot_end = time_slot_start + timedelta(minutes=30)
             # Check if an event is scheduled during this time slot
             for event in calendar_data:
-                if event["start_time"] <= time_slot_start < event["end_time"]:
-                    block = f"[bold #FC6C85]{event['title']}[/bold #FC6C85]"
-                    break
+                if event["recurrence"] == "weekly":
+                    # Add recurring weekly events
+                    days_difference = (time_slot_start - event["start_time"]).days
+                    if days_difference % 7 == 0:
+                        if event["start_time"].time() <= time_slot_start.time() < event["end_time"].time():
+                            block = f"[bold #FC6C85]{event['title']}[/bold #FC6C85]"
+                            break
+                else:
+                    if event["start_time"] <= time_slot_start < event["end_time"]:
+                        block = f"[bold #FC6C85]{event['title']}[/bold #FC6C85]"
+                        break
             row.append(block)
         table.add_row(*row)
 
