@@ -17,61 +17,34 @@ def load_calendar():
             for event in calendar_data:
                 event["start_time"] = datetime.strptime(event["start_time"], "%Y-%m-%d %H:%M:%S.%f")
                 event["end_time"] = datetime.strptime(event["end_time"], "%Y-%m-%d %H:%M:%S.%f")
-    else:
-        print("No calendar data found.")
-    print(f"Loaded calendar data: {calendar_data}")
 
 def save_calendar():
     with open(calendar_file, 'w') as f:
         json.dump(calendar_data, f, default=str)
 
-def get_free_time_slots(week_start):
-    """
-    This is a placeholder function. You need to implement logic to get free time slots from the calendar.
-    For now, this function returns a dictionary with each day of the week containing a list of free time slots.
-    """
-    free_time_slots = {}
-    for i in range(7):
-        day = week_start + timedelta(days=i)
-        free_time_slots[day] = [(day.replace(hour=9, minute=0), day.replace(hour=17, minute=0))]  # Example: 9 AM to 5 PM free
-
-    return free_time_slots
-
 def display_calendar(week_start):
     load_calendar()
-    print("Displaying calendar...")  # Debug statement
     table = Table(title="Weekly Calendar", show_lines=True, style="bold #FC6C85")
     table.add_column("Time", style="#FC6C85", width=10)
     days = [(week_start + timedelta(days=i)).strftime("%B %d\n%A") for i in range(7)]
     for day in days:
         table.add_column(day, style="#FC6C85", width=20)
-
-    # Track which event has had its title displayed
-    displayed_events = {}
-
+    
     for half_hour in range(6 * 2, 24 * 2):  # From 6 AM to 12 AM
         time_label = (datetime.min + timedelta(minutes=half_hour * 30)).time().strftime('%I:%M %p')
         row = [time_label]
         for i in range(7):
             day = week_start + timedelta(days=i)
-            block = " "
+            block = ""
             time_slot_start = day.replace(hour=(half_hour // 2), minute=(half_hour % 2) * 30)
             time_slot_end = time_slot_start + timedelta(minutes=30)
             for event in calendar_data:
-                print(f"Checking event '{event['title']}' from {event['start_time']} to {event['end_time']} against time slot {time_slot_start} to {time_slot_end}")
                 if event["start_time"] <= time_slot_start < event["end_time"]:
-                    if event["start_time"] == time_slot_start:
-                        event_text = event['title'].ljust(15)
-                        block = f"[bold white on #FC6C85]{event_text}[/bold white on #FC6C85]"
-                        displayed_events[event["title"]] = True
-                        print(f"Displaying event title: {event_text} at {time_slot_start}")
-                    elif event["title"] in displayed_events:
-                        block = "[on #FC6C85]" + " " * 15 + "[/on #FC6C85]"
-                        print(f"Highlighting continuation of event '{event['title']}' at {time_slot_start}")
+                    block = f"[bold #FC6C85]{event['title']}[/bold #FC6C85]"
                     break
             row.append(block)
         table.add_row(*row)
-
+    
     console.print(table)
 
 def display_event_list():
@@ -101,7 +74,6 @@ def add_event():
         
         calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": recurrence})
         save_calendar()
-        print(f"Added event: {title}, Start time: {start_time}, End time: {end_time}")
         console.print("[bold #FC6C85]Event added successfully![/bold #FC6C85]")
     else:
         console.print("[bold red]Invalid day and time format! Please use the format: Monday 5:30 PM[/bold red]")

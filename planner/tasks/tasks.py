@@ -2,8 +2,7 @@ import json
 import os
 from rich.console import Console
 from rich.table import Table
-from datetime import datetime, timedelta
-from my_calendar import get_free_time_slots, load_calendar, save_calendar, calendar_data
+from my_calendar import load_calendar, save_calendar, calendar_data
 
 console = Console()
 tasks_file = "tasks_data.json"  # File to store task data
@@ -105,44 +104,10 @@ def delete_task():
     else:
         console.print("[bold red]Invalid task ID![/bold red]")
 
-def schedule_tasks(tasks):
-    """Schedule tasks in the calendar based on available time slots."""
-    load_calendar()
-    week_start = datetime.now() - timedelta(days=datetime.now().weekday())
-    free_time_slots = get_free_time_slots(week_start)
-    scheduled_tasks = []
-
-    for task in tasks:
-        duration = int(task["time"])
-        scheduled = False
-
-        for day, slots in free_time_slots.items():
-            for start_time, end_time in slots:
-                if (end_time - start_time).total_seconds() / 60 >= duration:
-                    task_start_time = start_time
-                    task_end_time = start_time + timedelta(minutes=duration)
-                    scheduled_tasks.append({
-                        "title": task["title"],
-                        "start_time": task_start_time,
-                        "end_time": task_end_time,
-                        "recurrence": "none"
-                    })
-                    free_time_slots[day].remove((start_time, end_time))
-                    if task_end_time < end_time:
-                        free_time_slots[day].append((task_end_time, end_time))
-                    scheduled = True
-                    break
-            if scheduled:
-                break
-
-    calendar_data.extend(scheduled_tasks)
-    save_calendar()
-    console.print("[bold #FC6C85]Tasks scheduled successfully![/bold #FC6C85]")
-
 if __name__ == "__main__":
     # Example usage
     while True:
-        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, schedule, exit)")
+        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, exit)")
         choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]").strip().lower()
         if choice == "display":
             display_tasks()
@@ -154,9 +119,6 @@ if __name__ == "__main__":
             mark_task_done()
         elif choice == "delete":
             delete_task()
-        elif choice == "schedule":
-            load_tasks()
-            schedule_tasks(tasks_data)
         elif choice == "exit":
             break
         else:

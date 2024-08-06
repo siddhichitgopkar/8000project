@@ -1,6 +1,5 @@
 import json
 import os
-import subprocess
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
@@ -15,22 +14,11 @@ def load_habits():
     if os.path.exists(habit_file):
         with open(habit_file, 'r') as f:
             habit_data = json.load(f)
-        initialize_details_file()
 
 def save_habits():
     """Save habits to the JSON file."""
     with open(habit_file, 'w') as f:
         json.dump(habit_data, f, default=str)
-
-def initialize_details_file():
-    """Initialize details file for each habit if not present."""
-    for habit in habit_data:
-        if "details_file" not in habit:
-            habit["details_file"] = f"{habit['title']}_details.txt"
-            if not os.path.exists(habit["details_file"]):
-                with open(habit["details_file"], 'w') as f:
-                    f.write("")
-    save_habits()
 
 def display_habits():
     """Display all habits with their completion status."""
@@ -58,11 +46,8 @@ def add_habit():
     """Add a new habit."""
     load_habits()
     title = console.input("[#FC6C85]Habit title: [/#FC6C85]")
-    details_file = f"{title}_details.txt"
-    habit_data.append({"title": title, "details_file": details_file, "completion": []})
+    habit_data.append({"title": title, "completion": []})
     save_habits()
-    with open(details_file, 'w') as f:
-        f.write("")
     console.print("[bold #FC6C85]Habit added successfully![/bold #FC6C85]")
 
 def delete_habit():
@@ -71,27 +56,9 @@ def delete_habit():
     display_habits()
     habit_id = int(console.input("[#FC6C85]Enter habit ID to delete: [/#FC6C85]"))
     if 0 <= habit_id < len(habit_data):
-        os.remove(habit_data[habit_id]["details_file"])
         habit_data.pop(habit_id)
         save_habits()
         console.print("[bold #FC6C85]Habit deleted successfully![/bold #FC6C85]")
-    else:
-        console.print("[bold red]Invalid habit ID![/bold red]")
-
-def view_habit_info():
-    """View detailed information about a habit."""
-    load_habits()
-    display_habits()
-    habit_id = int(console.input("[#FC6C85]Enter habit ID to view info: [/#FC6C85]"))
-    if 0 <= habit_id < len(habit_data):
-        details_file = habit_data[habit_id]["details_file"]
-        console.print(f"[bold #FC6C85]Opening details for habit: {habit_data[habit_id]['title']}[/bold #FC6C85]")
-        if os.name == 'nt':  # Windows
-            os.startfile(details_file)
-        elif os.name == 'posix':  # macOS and Linux
-            subprocess.call(['open', details_file])
-        else:
-            subprocess.call(['xdg-open', details_file])
     else:
         console.print("[bold red]Invalid habit ID![/bold red]")
 
