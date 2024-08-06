@@ -25,6 +25,27 @@ def save_calendar():
     with open(calendar_file, 'w') as f:
         json.dump(calendar_data, f, default=str)
 
+def get_free_time_slots(week_start):
+    """Get free time slots in the calendar."""
+    load_calendar()
+    free_time_slots = {day: [] for day in range(7)}
+    time_slots = [week_start + timedelta(minutes=15 * i) for i in range(6 * 4, 24 * 4)]
+
+    for day in range(7):
+        day_start = week_start + timedelta(days=day)
+        events = [event for event in calendar_data if event["start_time"].date() == day_start.date()]
+        events.sort(key=lambda e: e["start_time"])
+
+        last_end_time = day_start.replace(hour=6, minute=0)
+        for event in events:
+            if event["start_time"] > last_end_time:
+                free_time_slots[day].append((last_end_time, event["start_time"]))
+            last_end_time = max(last_end_time, event["end_time"])
+        if last_end_time < day_start.replace(hour=24, minute=0):
+            free_time_slots[day].append((last_end_time, day_start.replace(hour=24, minute=0)))
+
+    return free_time_slots
+
 def display_calendar(week_start):
     """Display the weekly calendar with events."""
     load_calendar()
@@ -114,7 +135,7 @@ def modify_event():
     display_event_list()
     event_id = int(console.input("[#FC6C85]Enter event ID to modify: [/#FC6C85]"))
     if 0 <= event_id < len(calendar_data):
-        title = console.input("[#FC6C85]New event title: [/#FC6C85]") or calendar_data[event_id]["title"]
+        title = console.input("[#FC6C85]New event title: [/#FC6C85]") or calendar_data[event_id].get("title", calendar_data[event_id].get("task", "Untitled"))
         day_time = console.input("[#FC6C85]New day and time (e.g., Monday 5:30 PM): [/#FC6C85]")
         duration = console.input("[#FC6C85]New event duration in minutes: [/#FC6C85]")
         recurrence = console.input("[#FC6C85]New recurrence (none, daily, weekly, monthly) (default: none): [/#FC6C85]") or calendar_data[event_id]["recurrence"]
@@ -160,49 +181,60 @@ def remove_event():
     else:
         console.print("[bold red]Invalid event ID![/bold red]")
 
-def display_calendar(week_start):
-    """Display the weekly calendar with events."""
-    load_calendar()
-    table = Table(title="Weekly Calendar", show_lines=True, style="bold #FC6C85")
-    
-    # Create time column
-    table.add_column("Time", style="#FC6C85", width=8)
-    
-    # Create columns for each day of the week
-    days = [(week_start + timedelta(days=i)).strftime("%B %d\n%A") for i in range(7)]
-    for day in days:
-        table.add_column(day, style="#FC6C85", width=16)
+def schedule_tasks(tasks):
+    """Schedule tasks in the calendar based on available time slots."""
+    week_start = datetime.now() - timedelta(days=datetime.now().weekday())
+    free_time_slots = get_free_time_slots(week_start)
+    scheduled_tasks = []
 
-    # Initialize empty rows for each 15-minute slot from 6 AM to 12 AM
-    time_slots = [(datetime.min + timedelta(minutes=15 * i)).strftime('%I:%M %p') for i in range(6 * 4, 24 * 4)]
-    rows = [[""] * 7 for _ in time_slots]
+    for task in tasks:
+        duration = int(task["time"])
+        scheduled = False
 
-    # Create a dictionary to hold the events for each day
-    day_events = {day: [] for day in days}
-    for event in calendar_data:
-        event_day = event["start_time"].strftime("%B %d\n%A")
-        if event_day in day_events:
-            day_events[event_day].append(event)
+        for day, slots in free_time_slots.items():
+            for start_time, end_time in slots:
+                if (end_time - start_time).total_seconds() / 60 >= duration:
+                    task_start_time = start_time
+                    task_end_time = start_time + timedelta(minutes=duration)
+                    scheduled_tasks.append({
+                        "title": task["title"],
+                        "start_time": task_start_time,
+                        "end_time": task_end_time,
+                        "recurrence": "none"
+                    })
+                    free_time_slots[day].remove((start_time, end_time))
+                    if task_end_time < end_time:
+                        free_time_slots[day].append((task_end_time, end_time))
+                    scheduled = True
+                    break
+            if scheduled:
+                break
 
-    # Sort the events for each day by their start time
-    for day in day_events:
-        day_events[day].sort(key=lambda e: e["start_time"])
+    calendar_data.extend(scheduled_tasks)
+    save_calendar()
+    console.print("[bold #FC6C85]Tasks scheduled successfully![/bold #FC6C85]")
 
-    # Place events in the appropriate rows
-    for day_idx, day in enumerate(days):
-        events = day_events[day]
-        for event in events:
-            start_index = (event["start_time"].hour - 6) * 4 + event["start_time"].minute // 15
-            duration = int((event["end_time"] - event["start_time"]).total_seconds() / 60 // 15)
-            event_str = f"{event['title']}"
-            for i in range(duration):
-                if i == 0:
-                    rows[start_index + i][day_idx] = f"[bold on #FC6C85 white]{event_str:<15}[/bold on #FC6C85 white]"
-                else:
-                    rows[start_index + i][day_idx] = f"[on #FC6C85]{'|':<15}[/on #FC6C85]"  # Continue the block
-
-    # Add time slots and rows to the table
-    for time_slot, row in zip(time_slots, rows):
-        table.add_row(time_slot, *row)
-
-    console.print(table)
+if __name__ == "__main__":
+    # Example usage
+    while True:
+        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, schedule, exit)")
+        choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]").strip().lower()
+        if choice == "display":
+            week_start = datetime.now() - timedelta(days=datetime.now().weekday())
+            display_calendar(week_start)
+        elif choice == "add":
+            add_event()
+        elif choice == "modify":
+            modify_event()
+        elif choice == "done":
+            remove_event()
+        elif choice == "delete":
+            remove_event()
+        elif choice == "schedule":
+            from tasks.tasks import load_tasks, tasks_data
+            load_tasks()
+            schedule_tasks(tasks_data)
+        elif choice == "exit":
+            break
+        else:
+            console.print("[bold red]Invalid choice! Please choose a valid option.[/bold red]")

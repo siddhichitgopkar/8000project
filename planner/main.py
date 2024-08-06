@@ -2,7 +2,7 @@ import calendar
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
-from my_calendar.calendar import display_calendar, add_event, modify_event, remove_event
+from my_calendar.my_calendar import display_calendar, add_event, modify_event, remove_event
 from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task
 from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder
 from habits.habits import display_habits, add_habit, delete_habit, view_habit_info, mark_habit_done
