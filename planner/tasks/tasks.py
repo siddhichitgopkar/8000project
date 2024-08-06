@@ -3,7 +3,7 @@ import os
 from rich.console import Console
 from rich.table import Table
 from datetime import datetime, timedelta
-from my_calendar import get_free_time_slots, load_calendar, save_calendar, calendar_data  # Updated import
+from my_calendar import get_free_time_slots, load_calendar, save_calendar, calendar_data
 
 console = Console()
 tasks_file = "tasks_data.json"  # File to store task data

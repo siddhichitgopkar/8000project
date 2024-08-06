@@ -6,138 +6,114 @@ from rich.table import Table
 import re
 
 console = Console()
-calendar_data = []  # List to hold calendar events
-calendar_file = "calendar_data.json"  # File to store calendar data
+calendar_data = []
+calendar_file = "calendar_data.json"
 
 def load_calendar():
-    """Load calendar data from the JSON file."""
     global calendar_data
     if os.path.exists(calendar_file):
         with open(calendar_file, 'r') as f:
             calendar_data = json.load(f)
-            # Convert string dates back to datetime objects
             for event in calendar_data:
                 event["start_time"] = datetime.strptime(event["start_time"], "%Y-%m-%d %H:%M:%S.%f")
                 event["end_time"] = datetime.strptime(event["end_time"], "%Y-%m-%d %H:%M:%S.%f")
+    else:
+        print("No calendar data found.")
+    print(f"Loaded calendar data: {calendar_data}")
 
 def save_calendar():
-    """Save calendar data to the JSON file."""
     with open(calendar_file, 'w') as f:
         json.dump(calendar_data, f, default=str)
 
 def get_free_time_slots(week_start):
-    """Get free time slots in the calendar."""
-    load_calendar()
-    free_time_slots = {day: [] for day in range(7)}
-    time_slots = [week_start + timedelta(minutes=15 * i) for i in range(6 * 4, 24 * 4)]
-
-    for day in range(7):
-        day_start = week_start + timedelta(days=day)
-        events = [event for event in calendar_data if event["start_time"].date() == day_start.date()]
-        events.sort(key=lambda e: e["start_time"])
-
-        last_end_time = day_start.replace(hour=6, minute=0)
-        for event in events:
-            if event["start_time"] > last_end_time:
-                free_time_slots[day].append((last_end_time, event["start_time"]))
-            last_end_time = max(last_end_time, event["end_time"])
-        if last_end_time < day_start.replace(hour=24, minute=0):
-            free_time_slots[day].append((last_end_time, day_start.replace(hour=24, minute=0)))
+    """
+    This is a placeholder function. You need to implement logic to get free time slots from the calendar.
+    For now, this function returns a dictionary with each day of the week containing a list of free time slots.
+    """
+    free_time_slots = {}
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        free_time_slots[day] = [(day.replace(hour=9, minute=0), day.replace(hour=17, minute=0))]  # Example: 9 AM to 5 PM free
 
     return free_time_slots
 
 def display_calendar(week_start):
-    """Display the weekly calendar with events."""
     load_calendar()
+    print("Displaying calendar...")  # Debug statement
     table = Table(title="Weekly Calendar", show_lines=True, style="bold #FC6C85")
-    
-    # Create time column
-    table.add_column("Time", style="#FC6C85", width=8)
-    
-    # Create columns for each day of the week
+    table.add_column("Time", style="#FC6C85", width=10)
     days = [(week_start + timedelta(days=i)).strftime("%B %d\n%A") for i in range(7)]
     for day in days:
-        table.add_column(day, style="#FC6C85", width=16)
+        table.add_column(day, style="#FC6C85", width=20)
 
-    # Initialize empty rows for each 15-minute slot from 6 AM to 12 AM
-    time_slots = [(datetime.min + timedelta(minutes=15 * i)).strftime('%I:%M %p') for i in range(6 * 4, 24 * 4)]
-    rows = [[""] * 7 for _ in time_slots]
+    # Track which event has had its title displayed
+    displayed_events = {}
 
-    # Create a dictionary to hold the events for each day
-    day_events = {day: [] for day in days}
-    for event in calendar_data:
-        event_day = event["start_time"].strftime("%B %d\n%A")
-        if event_day in day_events:
-            day_events[event_day].append(event)
-
-    # Sort the events for each day by their start time
-    for day in day_events:
-        day_events[day].sort(key=lambda e: e["start_time"])
-
-    # Place events in the appropriate rows
-    for day_idx, day in enumerate(days):
-        events = day_events[day]
-        for event in events:
-            start_index = (event["start_time"].hour - 6) * 4 + event["start_time"].minute // 15
-            duration = int((event["end_time"] - event["start_time"]).total_seconds() / 60 // 15)
-            event_str = f"{event['title']}"
-            for i in range(duration):
-                if i == 0:
-                    rows[start_index + i][day_idx] = f"[bold on #FC6C85 white]{event_str:<15}[/bold on #FC6C85 white]"
-                else:
-                    rows[start_index + i][day_idx] = f"[on #FC6C85]{'|':<15}[/on #FC6C85]"  # Continue the block
-
-    # Add time slots and rows to the table
-    for time_slot, row in zip(time_slots, rows):
-        table.add_row(time_slot, *row)
+    for half_hour in range(6 * 2, 24 * 2):  # From 6 AM to 12 AM
+        time_label = (datetime.min + timedelta(minutes=half_hour * 30)).time().strftime('%I:%M %p')
+        row = [time_label]
+        for i in range(7):
+            day = week_start + timedelta(days=i)
+            block = " "
+            time_slot_start = day.replace(hour=(half_hour // 2), minute=(half_hour % 2) * 30)
+            time_slot_end = time_slot_start + timedelta(minutes=30)
+            for event in calendar_data:
+                print(f"Checking event '{event['title']}' from {event['start_time']} to {event['end_time']} against time slot {time_slot_start} to {time_slot_end}")
+                if event["start_time"] <= time_slot_start < event["end_time"]:
+                    if event["start_time"] == time_slot_start:
+                        event_text = event['title'].ljust(15)
+                        block = f"[bold white on #FC6C85]{event_text}[/bold white on #FC6C85]"
+                        displayed_events[event["title"]] = True
+                        print(f"Displaying event title: {event_text} at {time_slot_start}")
+                    elif event["title"] in displayed_events:
+                        block = "[on #FC6C85]" + " " * 15 + "[/on #FC6C85]"
+                        print(f"Highlighting continuation of event '{event['title']}' at {time_slot_start}")
+                    break
+            row.append(block)
+        table.add_row(*row)
 
     console.print(table)
 
 def display_event_list():
-    """Display a list of all events."""
     load_calendar()
     for i, event in enumerate(calendar_data):
         console.print(f"[{i}] {event['title']} on {event['start_time'].strftime('%A %I:%M %p')} to {event['end_time'].strftime('%I:%M %p')}")
 
 def add_event():
-    """Add a new event to the calendar."""
     load_calendar()
     title = console.input("[#FC6C85]Event title: [/#FC6C85]")
     day_time = console.input("[#FC6C85]Enter day and time (e.g., Monday 5:30 PM): [/#FC6C85]")
-    duration = int(console.input("[#FC6C85]Enter event duration in minutes: [/#FC6C85]"))
+    duration = int(console.input("[#FC6C85]Enter event duration in hours: [/#FC6C85]"))
     recurrence = console.input("[#FC6C85]Recurrence (none, daily, weekly, monthly) (default: none): [/#FC6C85]") or "none"
 
-    # Parse the day and time input
     match = re.match(r"(\w+)\s+(\d{1,2}:\d{2}\s*[APMapm]{2})", day_time)
     if match:
         day, time = match.groups()
         time = datetime.strptime(time, "%I:%M %p")
         day = day.capitalize()
 
-        # Map the day of the week to an integer
         days_of_week = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
         week_start = datetime.now() - timedelta(days=datetime.now().weekday())
         event_day = week_start + timedelta(days=days_of_week[day])
 
-        # Create start and end times for the event
         start_time = event_day.replace(hour=time.hour, minute=time.minute)
-        end_time = start_time + timedelta(minutes=duration)
-        # Add the event to the calendar data
+        end_time = start_time + timedelta(hours=duration)
+        
         calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": recurrence})
         save_calendar()
+        print(f"Added event: {title}, Start time: {start_time}, End time: {end_time}")
         console.print("[bold #FC6C85]Event added successfully![/bold #FC6C85]")
     else:
         console.print("[bold red]Invalid day and time format! Please use the format: Monday 5:30 PM[/bold red]")
 
 def modify_event():
-    """Modify an existing event in the calendar."""
     load_calendar()
     display_event_list()
     event_id = int(console.input("[#FC6C85]Enter event ID to modify: [/#FC6C85]"))
     if 0 <= event_id < len(calendar_data):
-        title = console.input("[#FC6C85]New event title: [/#FC6C85]") or calendar_data[event_id].get("title", calendar_data[event_id].get("task", "Untitled"))
+        title = console.input("[#FC6C85]New event title: [/#FC6C85]") or calendar_data[event_id]["title"]
         day_time = console.input("[#FC6C85]New day and time (e.g., Monday 5:30 PM): [/#FC6C85]")
-        duration = console.input("[#FC6C85]New event duration in minutes: [/#FC6C85]")
+        duration = console.input("[#FC6C85]New event duration in hours: [/#FC6C85]")
         recurrence = console.input("[#FC6C85]New recurrence (none, daily, weekly, monthly) (default: none): [/#FC6C85]") or calendar_data[event_id]["recurrence"]
 
         if day_time:
@@ -158,7 +134,7 @@ def modify_event():
                 return
 
         if duration:
-            end_time = calendar_data[event_id]["start_time"] + timedelta(minutes=int(duration))
+            end_time = calendar_data[event_id]["start_time"] + timedelta(hours=int(duration))
             calendar_data[event_id]["end_time"] = end_time
 
         calendar_data[event_id]["title"] = title
@@ -170,7 +146,6 @@ def modify_event():
         console.print("[bold red]Invalid event ID![/bold red]")
 
 def remove_event():
-    """Remove an event from the calendar."""
     load_calendar()
     display_event_list()
     event_id = int(console.input("[#FC6C85]Enter event ID to remove: [/#FC6C85]"))
@@ -180,61 +155,3 @@ def remove_event():
         console.print("[bold #FC6C85]Event removed successfully![/bold #FC6C85]")
     else:
         console.print("[bold red]Invalid event ID![/bold red]")
-
-def schedule_tasks(tasks):
-    """Schedule tasks in the calendar based on available time slots."""
-    week_start = datetime.now() - timedelta(days=datetime.now().weekday())
-    free_time_slots = get_free_time_slots(week_start)
-    scheduled_tasks = []
-
-    for task in tasks:
-        duration = int(task["time"])
-        scheduled = False
-
-        for day, slots in free_time_slots.items():
-            for start_time, end_time in slots:
-                if (end_time - start_time).total_seconds() / 60 >= duration:
-                    task_start_time = start_time
-                    task_end_time = start_time + timedelta(minutes=duration)
-                    scheduled_tasks.append({
-                        "title": task["title"],
-                        "start_time": task_start_time,
-                        "end_time": task_end_time,
-                        "recurrence": "none"
-                    })
-                    free_time_slots[day].remove((start_time, end_time))
-                    if task_end_time < end_time:
-                        free_time_slots[day].append((task_end_time, end_time))
-                    scheduled = True
-                    break
-            if scheduled:
-                break
-
-    calendar_data.extend(scheduled_tasks)
-    save_calendar()
-    console.print("[bold #FC6C85]Tasks scheduled successfully![/bold #FC6C85]")
-
-if __name__ == "__main__":
-    # Example usage
-    while True:
-        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, schedule, exit)")
-        choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]").strip().lower()
-        if choice == "display":
-            week_start = datetime.now() - timedelta(days=datetime.now().weekday())
-            display_calendar(week_start)
-        elif choice == "add":
-            add_event()
-        elif choice == "modify":
-            modify_event()
-        elif choice == "done":
-            remove_event()
-        elif choice == "delete":
-            remove_event()
-        elif choice == "schedule":
-            from tasks.tasks import load_tasks, tasks_data
-            load_tasks()
-            schedule_tasks(tasks_data)
-        elif choice == "exit":
-            break
-        else:
-            console.print("[bold red]Invalid choice! Please choose a valid option.[/bold red]")
