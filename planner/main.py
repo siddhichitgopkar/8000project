@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
 from my_calendar.my_calendar import display_calendar, add_event, modify_event, remove_event
-from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task
+from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task, schedule_task
 from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder
 from habits.habits import display_habits, add_habit, delete_habit, mark_habit_done
 from students.students import display_students, add_student, delete_student, mark_attendance, display_receipts
@@ -60,7 +60,7 @@ def main():
         elif choice == "tasks":
             while True:
                 display_tasks()
-                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (add, modify, done, delete, back)")
+                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (add, modify, done, delete, schedule, back)")
                 task_choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]")
                 if task_choice == "add":
                     add_task()
@@ -70,6 +70,8 @@ def main():
                     mark_task_done()
                 elif task_choice == "delete":
                     delete_task()
+                elif task_choice == "schedule":
+                    schedule_task()
                 elif task_choice == "back":
                     break
         elif choice == "notes":

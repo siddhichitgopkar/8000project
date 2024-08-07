@@ -1,8 +1,9 @@
 import json
 import os
+from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
-from my_calendar import load_calendar, save_calendar, calendar_data
+from my_calendar.my_calendar import load_calendar, save_calendar, calendar_data, add_event_at_time
 
 console = Console()
 tasks_file = "tasks_data.json"  # File to store task data
@@ -104,10 +105,44 @@ def delete_task():
     else:
         console.print("[bold red]Invalid task ID![/bold red]")
 
+def schedule_task():
+    """Schedule a task in the calendar."""
+    load_tasks()
+    load_calendar()
+    display_tasks()
+    task_id = int(console.input("[#FC6C85]Enter task ID to schedule: [/#FC6C85]"))
+    if 0 <= task_id < len(tasks_data):
+        task = tasks_data[task_id]
+        title = task["title"]
+        day = task["day"]
+        duration = int(task["time"])
+
+        days_of_week = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3, "friday": 4, "saturday": 5, "sunday": 6}
+        if day in days_of_week:
+            week_start = datetime.now() - timedelta(days=datetime.now().weekday())
+            task_day = week_start + timedelta(days=days_of_week[day])
+            
+            time_slots = [(task_day.replace(hour=hour, minute=minute), task_day.replace(hour=hour, minute=minute) + timedelta(minutes=duration)) 
+                          for hour in range(6, 24) for minute in [0, 30]]
+
+            for start_time, end_time in time_slots:
+                if all(start_time > event["end_time"] or end_time < event["start_time"] for event in calendar_data):
+                    add_event_at_time(title, start_time, end_time)
+                    tasks_data[task_id]["done"] = True
+                    save_tasks()
+                    console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
+                    return
+
+            console.print("[bold red]No available time slot found for the task duration on the specified day.[/bold red]")
+        else:
+            console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
+    else:
+        console.print("[bold red]Invalid task ID! Please enter a valid ID.[/bold red]")
+
 if __name__ == "__main__":
     # Example usage
     while True:
-        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, exit)")
+        console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, schedule, exit)")
         choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]").strip().lower()
         if choice == "display":
             display_tasks()
@@ -119,6 +154,8 @@ if __name__ == "__main__":
             mark_task_done()
         elif choice == "delete":
             delete_task()
+        elif choice == "schedule":
+            schedule_task()
         elif choice == "exit":
             break
         else:

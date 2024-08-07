@@ -127,3 +127,8 @@ def remove_event():
         console.print("[bold #FC6C85]Event removed successfully![/bold #FC6C85]")
     else:
         console.print("[bold red]Invalid event ID![/bold red]")
+
+def add_event_at_time(title, start_time, end_time):
+    load_calendar()
+    calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": "none"})
+    save_calendar()
