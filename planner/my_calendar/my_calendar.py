@@ -1,26 +1,10 @@
-import json
-import os
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
 import re
+from calendar_utils import load_calendar, save_calendar, calendar_data, add_event_at_time
 
 console = Console()
-calendar_data = []
-calendar_file = "calendar_data.json"
-
-def load_calendar():
-    global calendar_data
-    if os.path.exists(calendar_file):
-        with open(calendar_file, 'r') as f:
-            calendar_data = json.load(f)
-            for event in calendar_data:
-                event["start_time"] = datetime.strptime(event["start_time"], "%Y-%m-%d %H:%M:%S.%f")
-                event["end_time"] = datetime.strptime(event["end_time"], "%Y-%m-%d %H:%M:%S.%f")
-
-def save_calendar():
-    with open(calendar_file, 'w') as f:
-        json.dump(calendar_data, f, default=str)
 
 def display_calendar(week_start):
     load_calendar()
@@ -101,13 +85,10 @@ def modify_event():
 
                 start_time = event_day.replace(hour=time.hour, minute=time.minute)
                 calendar_data[event_id]["start_time"] = start_time
-            else:
-                console.print("[bold red]Invalid day and time format! Please use the format: Monday 5:30 PM[/bold red]")
-                return
 
-        if duration:
-            end_time = calendar_data[event_id]["start_time"] + timedelta(hours=int(duration))
-            calendar_data[event_id]["end_time"] = end_time
+                if duration:
+                    end_time = start_time + timedelta(hours=int(duration))
+                    calendar_data[event_id]["end_time"] = end_time
 
         calendar_data[event_id]["title"] = title
         calendar_data[event_id]["recurrence"] = recurrence
@@ -127,8 +108,3 @@ def remove_event():
         console.print("[bold #FC6C85]Event removed successfully![/bold #FC6C85]")
     else:
         console.print("[bold red]Invalid event ID![/bold red]")
-
-def add_event_at_time(title, start_time, end_time):
-    load_calendar()
-    calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": "none"})
-    save_calendar()
