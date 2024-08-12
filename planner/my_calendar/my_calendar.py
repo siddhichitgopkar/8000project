@@ -58,6 +58,9 @@ def display_calendar(week_start):
     for day in days:
         table.add_column(day, style="#FC6C85", width=20)
     
+    # Dictionary to track which event is already displayed
+    ongoing_events = {}
+
     for half_hour in range(6 * 2, 24 * 2):  # From 6 AM to 12 AM
         time_label = (datetime.min + timedelta(minutes=half_hour * 30)).time().strftime('%I:%M %p')
         row = [time_label]
@@ -66,10 +69,18 @@ def display_calendar(week_start):
             block = ""
             time_slot_start = day.replace(hour=(half_hour // 2), minute=(half_hour % 2) * 30)
             time_slot_end = time_slot_start + timedelta(minutes=30)
+
             for event in calendar_data:
                 if event["start_time"] <= time_slot_start < event["end_time"]:
-                    block = f"[bold white on #FF69B4]{event['title']}[/bold white on #FF69B4]"
+                    if event["title"] in ongoing_events and ongoing_events[event["title"]] == event["start_time"]:
+                        # Subsequent blocks of the same event
+                        block = f"[bold white on #FF69B4]{' ' * 18}[/bold white on #FF69B4]"
+                    else:
+                        # First block of the event
+                        block = f"[bold white on #FF69B4]{event['title']}{' ' * (18 - len(event['title']))}[/bold white on #FF69B4]"
+                        ongoing_events[event["title"]] = event["start_time"]
                     break
+
             row.append(block)
         table.add_row(*row)
     
