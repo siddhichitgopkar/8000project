@@ -68,7 +68,7 @@ def display_calendar(week_start):
             time_slot_end = time_slot_start + timedelta(minutes=30)
             for event in calendar_data:
                 if event["start_time"] <= time_slot_start < event["end_time"]:
-                    block = f"[bold white on #D2042D]{event['title']}[/bold white on #D2042D]"
+                    block = f"[bold white on #FF69B4]{event['title']}[/bold white on #FF69B4]"
                     break
             row.append(block)
         table.add_row(*row)
