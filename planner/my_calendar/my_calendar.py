@@ -80,6 +80,59 @@ def display_calendar(week_start):
     
     console.print(table)
 
+def display_today():
+    """Display today's calendar events and tasks."""
+    from tasks.tasks import load_tasks  # Local import to avoid circular dependency
+
+    calendar_data = load_calendar()
+    tasks_data = load_tasks()
+    today = datetime.now().date()
+
+    # Create a table for today's schedule
+    table = Table(title=f"Today's Schedule - {today.strftime('%B %d, %Y')}", show_lines=True, style="bold #FC6C85")
+    table.add_column("Time", style="#FC6C85", width=10)
+    table.add_column("Event", style="#FC6C85", width=30)
+
+    ongoing_events = {}
+
+    for half_hour in range(6 * 2, 24 * 2):  # From 6 AM to 12 AM
+        time_label = (datetime.min + timedelta(minutes=half_hour * 30)).time().strftime('%I:%M %p')
+        time_slot_start = datetime.combine(today, (datetime.min + timedelta(minutes=half_hour * 30)).time())
+        time_slot_end = time_slot_start + timedelta(minutes=30)
+
+        block = ""
+        for event in calendar_data:
+            if event["start_time"].date() == today and event["start_time"] <= time_slot_start < event["end_time"]:
+                event_display = event["title"]
+                style = "bold white on #FF69B4"  # Default style
+
+                if event.get("completed", False):
+                    style = "bold white on #D87093"  # Darker pink for completed tasks
+
+                if event_display in ongoing_events and ongoing_events[event_display] == event["start_time"]:
+                    block = f"[{style}]{' ' * 28}[/{style}]"
+                else:
+                    block = f"[{style}]{event_display}{' ' * (28 - len(event_display))}[/{style}]"
+                    ongoing_events[event_display] = event["start_time"]
+                break
+
+        table.add_row(time_label, block)
+
+    console.print(table)
+
+    # Create a table for today's tasks
+    tasks_table = Table(title="Today's Tasks", show_lines=True, style="bold #FC6C85")
+    tasks_table.add_column("Task", style="#FC6C85", width=30)
+    tasks_table.add_column("Status", style="#FC6C85", width=10)
+
+    for task in tasks_data:
+        task_day = task.get("day", "").lower()
+        if task_day == today.strftime('%A').lower():
+            status = "Done" if task.get("done", False) else "Pending"
+            tasks_table.add_row(task["title"], status)
+
+    console.print(tasks_table)
+
 def add_event():
     """Add a new event to the calendar."""
     calendar_data = load_calendar()

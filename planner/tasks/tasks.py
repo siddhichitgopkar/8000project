@@ -1,30 +1,32 @@
-# tasks.py
 import json
 import os
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
-from my_calendar import load_calendar, save_calendar, display_calendar
 
 console = Console()
+tasks_file = "tasks_data.json"  # Path to your tasks data file
 
-TASKS_FILE = "tasks_data.json"
-DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+tasks_data = []  # Global variable to store tasks
 
 def load_tasks():
     """Load tasks from the JSON file."""
-    if os.path.exists(TASKS_FILE):
+    global tasks_data
+    if os.path.exists(tasks_file):
         try:
-            with open(TASKS_FILE, 'r') as f:
-                return json.load(f)
+            with open(tasks_file, 'r') as f:
+                tasks_data = json.load(f)
         except json.JSONDecodeError as e:
             console.print(f"[bold red]Error loading tasks: {e}[/bold red]")
-    return []
+            tasks_data = []
+    else:
+        tasks_data = []
+    return tasks_data
 
 def save_tasks(tasks_data):
     """Save tasks to the JSON file."""
     try:
-        with open(TASKS_FILE, 'w') as f:
+        with open(tasks_file, 'w') as f:
             json.dump(tasks_data, f)
     except IOError as e:
         console.print(f"[bold red]Error saving tasks: {e}[/bold red]")
@@ -36,8 +38,6 @@ def display_tasks():
         console.print("[bold red]No tasks found. Add a new task![/bold red]")
         return
 
-    sorted_tasks = sorted(tasks_data, key=lambda x: DAYS_OF_WEEK.index(x.get("day", "unassigned")) if x.get("day", "unassigned") in DAYS_OF_WEEK else len(DAYS_OF_WEEK))
-
     table = Table(title="Tasks List", show_header=True, header_style="bold magenta", show_lines=True)
     table.add_column("ID", style="bold #FC6C85")
     table.add_column("Task", style="bold #FC6C85")
@@ -46,7 +46,7 @@ def display_tasks():
     table.add_column("Status", style="bold #FC6C85")
     table.add_column("Recurrence", style="bold #FC6C85")
 
-    for i, task in enumerate(sorted_tasks):
+    for i, task in enumerate(tasks_data):
         title = task.get("title", "Untitled")
         day = task.get("day", "Unassigned").capitalize()
         time = str(task.get("time", "N/A"))
@@ -63,11 +63,9 @@ def add_task():
     day = console.input("[#FC6C85]Day of the week (e.g., Monday): [/#FC6C85]").strip().lower()
     time = console.input("[#FC6C85]Time required (in minutes): [/#FC6C85]").strip()
     recurrence = console.input("[#FC6C85]Recurrence (none, daily, weekly): [/#FC6C85]").strip().lower() or "none"
-
-    if day not in DAYS_OF_WEEK and day != "":
+    if day not in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] and day != "":
         console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
         return
-
     tasks_data.append({"title": title, "day": day, "time": int(time), "done": False, "scheduled": False, "recurrence": recurrence})
     save_tasks(tasks_data)
     console.print("[bold #FC6C85]Task added successfully![/bold #FC6C85]")
@@ -79,16 +77,17 @@ def modify_task():
     try:
         task_id = int(console.input("[#FC6C85]Enter task ID to modify: [/#FC6C85]"))
         if 0 <= task_id < len(tasks_data):
-            title = console.input("[#FC6C85]New task title (leave empty to keep current): [/#FC6C85]") or tasks_data[task_id]["title"]
-            day = console.input("[#FC6C85]New day of the week (leave empty to keep current): [/#FC6C85]").strip().lower() or tasks_data[task_id]["day"]
-            time = console.input("[#FC6C85]New time required (in minutes) (leave empty to keep current): [/#FC6C85]").strip() or tasks_data[task_id]["time"]
-            recurrence = console.input("[#FC6C85]New recurrence (none, daily, weekly) (leave empty to keep current): [/#FC6C85]").strip().lower() or tasks_data[task_id]["recurrence"]
-
-            if day not in DAYS_OF_WEEK and day != "":
+            title = console.input("[#FC6C85]New task title (leave empty to keep current): [/#FC6C85]") or tasks_data[task_id].get("title", "Untitled")
+            day = console.input("[#FC6C85]New day of the week (leave empty to keep current): [/#FC6C85]").strip().lower() or tasks_data[task_id].get("day", "unassigned")
+            time = console.input("[#FC6C85]New time required (in minutes) (leave empty to keep current): [/#FC6C85]").strip() or tasks_data[task_id].get("time", "N/A")
+            recurrence = console.input("[#FC6C85]New recurrence (none, daily, weekly) (leave empty to keep current): [/#FC6C85]").strip().lower() or tasks_data[task_id].get("recurrence", "none")
+            if day not in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] and day != "":
                 console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
                 return
-
-            tasks_data[task_id].update({"title": title, "day": day, "time": int(time), "recurrence": recurrence})
+            tasks_data[task_id]["title"] = title
+            tasks_data[task_id]["day"] = day
+            tasks_data[task_id]["time"] = int(time)
+            tasks_data[task_id]["recurrence"] = recurrence
             save_tasks(tasks_data)
             console.print("[bold #FC6C85]Task modified successfully![/bold #FC6C85]")
         else:
@@ -99,35 +98,23 @@ def modify_task():
 def mark_task_done():
     """Mark a task as done."""
     tasks_data = load_tasks()
-    calendar_data = load_calendar()
     display_tasks()
     try:
         task_id = int(console.input("[#FC6C85]Enter task ID to mark as done: [/#FC6C85]"))
         if 0 <= task_id < len(tasks_data):
-            task = tasks_data.pop(task_id)
-            recurrence = task.get("recurrence")
-
-            # Mark the corresponding event in the calendar as completed
-            for event in calendar_data:
-                if event["title"] == task["title"] and not event.get("completed", False):
-                    event["completed"] = True
-                    break
-
-            if recurrence in ["daily", "weekly"]:
-                next_day = datetime.now() + (timedelta(days=1) if recurrence == "daily" else timedelta(weeks=1))
-                new_task = {
-                    "title": task["title"],
-                    "day": next_day.strftime("%A").lower(),
-                    "time": task["time"],
-                    "done": False,
-                    "scheduled": False,
-                    "recurrence": recurrence
-                }
+            task = tasks_data.pop(task_id)  # Remove the task from the list
+            if task.get("recurrence") == "daily":
+                next_day = datetime.now() + timedelta(days=1)
+                day = next_day.strftime("%A").lower()
+                new_task = {"title": task["title"], "day": day, "time": task["time"], "done": False, "scheduled": False, "recurrence": "daily"}
                 tasks_data.append(new_task)
-
+            elif task.get("recurrence") == "weekly":
+                next_week = datetime.now() + timedelta(days=7)
+                day = next_week.strftime("%A").lower()
+                new_task = {"title": task["title"], "day": day, "time": task["time"], "done": False, "scheduled": False, "recurrence": "weekly"}
+                tasks_data.append(new_task)
             save_tasks(tasks_data)
-            save_calendar(calendar_data)  # Save the updated calendar with the completed status
-            console.print("[bold #FC6C85]Task marked as done successfully![/bold #FC6C85]")
+            console.print("[bold #FC6C85]Task marked as done and handled successfully![/bold #FC6C85]")
         else:
             console.print("[bold red]Invalid task ID![/bold red]")
     except ValueError:
@@ -140,7 +127,7 @@ def delete_task():
     try:
         task_id = int(console.input("[#FC6C85]Enter task ID to delete: [/#FC6C85]"))
         if 0 <= task_id < len(tasks_data):
-            tasks_data.pop(task_id)
+            tasks_data.pop(task_id)  # Remove the task from the list
             save_tasks(tasks_data)
             console.print("[bold #FC6C85]Task deleted successfully![/bold #FC6C85]")
         else:
@@ -150,6 +137,8 @@ def delete_task():
 
 def schedule_task():
     """Schedule a task in the calendar."""
+    from my_calendar.my_calendar import load_calendar, save_calendar  # Local import to avoid circular dependency
+
     tasks_data = load_tasks()
     calendar_data = load_calendar()
     display_tasks()
@@ -172,14 +161,26 @@ def schedule_task():
             else:
                 specified_time = None
 
-            if day in DAYS_OF_WEEK:
+            days_of_week = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3, "friday": 4, "saturday": 5, "sunday": 6}
+            if day in days_of_week:
                 week_start = datetime.now() - timedelta(days=datetime.now().weekday())
-                task_day = week_start + timedelta(days=DAYS_OF_WEEK.index(day))
+                task_day = week_start + timedelta(days=days_of_week[day])
 
-                start_time = datetime.combine(task_day, specified_time) if specified_time else task_day.replace(hour=9, minute=0)
+                if task_day.date() == datetime.now().date() and specified_time:
+                    current_time = datetime.now().time()
+                    if specified_time < current_time:
+                        console.print("[bold red]Cannot schedule a task in the past for today![/bold red]")
+                        return
+
+                if specified_time:
+                    start_time = datetime.combine(task_day, specified_time)
+                else:
+                    start_time = datetime.combine(task_day, datetime.now().time() if task_day.date() == datetime.now().date() else datetime.min.time())
+                    if start_time < datetime.now():
+                        start_time = datetime.now() + timedelta(minutes=1)
+
                 end_time = start_time + duration
 
-                # Check for conflicts and adjust if necessary
                 while any(event["start_time"] < end_time and start_time < event["end_time"] for event in calendar_data):
                     start_time += timedelta(minutes=30)
                     end_time = start_time + duration
@@ -187,13 +188,13 @@ def schedule_task():
                 calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": recurrence})
                 save_calendar(calendar_data)
 
-                task["scheduled"] = True
+                tasks_data[task_id]["scheduled"] = True
                 save_tasks(tasks_data)
                 console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
             else:
                 console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
         else:
-            console.print("[bold red]Invalid task ID![/bold red]")
+            console.print("[bold red]Invalid task ID! Please enter a valid task ID.[/bold red]")
     except ValueError:
         console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
 

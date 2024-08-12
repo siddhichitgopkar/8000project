@@ -1,8 +1,8 @@
-import calendar
+import calendar  # Add this import
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
-from my_calendar.my_calendar import display_calendar, add_event, modify_event, remove_event
+from my_calendar.my_calendar import display_calendar, add_event, modify_event, remove_event, display_today
 from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task, schedule_task
 from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder
 from habits.habits import display_habits, add_habit, delete_habit, mark_habit_done
@@ -32,7 +32,7 @@ def main():
     current_date = datetime.now()
     while True:
         display_monthly_calendar(current_date)
-        console.print("[bold #FC6C85]Menu:[/bold #FC6C85] (cal, tasks, notes, habits, students, next, prev, exit)")
+        console.print("[bold #FC6C85]Menu:[/bold #FC6C85] (cal, today, tasks, notes, habits, students, next, prev, exit)")
         choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]")
 
         if choice == "next":
@@ -57,6 +57,8 @@ def main():
                     week_start -= timedelta(days=7)
                 elif cal_choice == "back":
                     break
+        elif choice == "today":
+            display_today()
         elif choice == "tasks":
             while True:
                 display_tasks()
