@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
-from calendar_utils import load_calendar, save_calendar, calendar_data, add_event_at_time
+from calendar_utils import load_calendar, save_calendar, calendar_data
 
 console = Console()
 tasks_file = "tasks_data.json"  # File to store task data
@@ -158,42 +158,21 @@ def schedule_task():
                 week_start = datetime.now() - timedelta(days=datetime.now().weekday())
                 task_day = week_start + timedelta(days=days_of_week[day])
 
-                if recurrence == "daily":
-                    end_day = task_day + timedelta(days=7)  # Schedule for the next 7 days
-                else:
-                    end_day = task_day + timedelta(days=7 * 4)  # Schedule for the next 4 weeks
+                start_time = datetime.combine(task_day, specified_time) if specified_time else task_day.replace(hour=9, minute=0)
+                end_time = start_time + duration
 
-                while task_day <= end_day:
-                    if specified_time:
-                        start_time = datetime.combine(task_day, specified_time)
-                        end_time = start_time + duration
-                        if all(start_time >= event["end_time"] or end_time <= event["start_time"] for event in calendar_data):
-                            add_event_at_time(title, start_time.strftime('%Y-%m-%d %H:%M:%S.%f'), end_time.strftime('%Y-%m-%d %H:%M:%S.%f'))
-                            tasks_data[task_id]["scheduled"] = True
-                            save_tasks()
-                            console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully on {task_day.strftime('%A, %B %d, %Y')} at {specified_time.strftime('%I:%M %p')}![/bold #FC6C85]")
-                            break
-                        else:
-                            console.print("[bold red]Specified time slot is not available. Scheduling at the next available time slot.[/bold red]")
-                            specified_time = None  # Fall back to auto-schedule if the specified time is not available
+                # Check for conflicts and adjust if necessary
+                while any(event["start_time"] < end_time and start_time < event["end_time"] for event in calendar_data):
+                    start_time += timedelta(minutes=30)
+                    end_time = start_time + duration
 
-                    if not specified_time:
-                        time_slots = [(task_day.replace(hour=hour, minute=minute), task_day.replace(hour=hour, minute=minute) + duration) 
-                                      for hour in range(8, 24) for minute in [0, 30]]  # Start from 8 AM
+                # Add the event to the calendar
+                calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": recurrence})
+                save_calendar()
 
-                        for start_time, end_time in time_slots:
-                            if all(start_time >= event["end_time"] or end_time <= event["start_time"] for event in calendar_data):
-                                add_event_at_time(title, start_time.strftime('%Y-%m-%d %H:%M:%S.%f'), end_time.strftime('%Y-%m-%d %H:%M:%S.%f'))
-                                tasks_data[task_id]["scheduled"] = True
-                                save_tasks()
-                                console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully on {task_day.strftime('%A, %B %d, %Y')}![/bold #FC6C85]")
-                                break
-                    if recurrence == "daily":
-                        task_day += timedelta(days=1)
-                    elif recurrence == "weekly":
-                        task_day += timedelta(weeks=1)
-                    else:
-                        break
+                tasks_data[task_id]["scheduled"] = True
+                save_tasks()
+                console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
             else:
                 console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
         else:
@@ -202,7 +181,6 @@ def schedule_task():
         console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
 
 if __name__ == "__main__":
-    # Example usage
     while True:
         console.print("[bold #FC6C85]Options:[/bold #FC6C85] (display, add, modify, done, delete, schedule, exit)")
         choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]").strip().lower()
