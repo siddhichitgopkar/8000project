@@ -142,6 +142,7 @@ def schedule_task():
     tasks_data = load_tasks()
     calendar_data = load_calendar()
     display_tasks()
+
     try:
         task_id = int(console.input("[#FC6C85]Enter task ID to schedule: [/#FC6C85]"))
         if 0 <= task_id < len(tasks_data):
@@ -166,12 +167,6 @@ def schedule_task():
                 week_start = datetime.now() - timedelta(days=datetime.now().weekday())
                 task_day = week_start + timedelta(days=days_of_week[day])
 
-                if task_day.date() == datetime.now().date() and specified_time:
-                    current_time = datetime.now().time()
-                    if specified_time < current_time:
-                        console.print("[bold red]Cannot schedule a task in the past for today![/bold red]")
-                        return
-
                 if specified_time:
                     start_time = datetime.combine(task_day, specified_time)
                 else:
@@ -181,13 +176,22 @@ def schedule_task():
 
                 end_time = start_time + duration
 
+                # Check for conflicts and adjust the start_time if necessary
                 while any(event["start_time"] < end_time and start_time < event["end_time"] for event in calendar_data):
                     start_time += timedelta(minutes=30)
                     end_time = start_time + duration
 
-                calendar_data.append({"title": title, "start_time": start_time, "end_time": end_time, "recurrence": recurrence})
+                # Add the event to the calendar
+                calendar_data.append({
+                    "title": title,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "recurrence": recurrence,
+                    "completed": False
+                })
                 save_calendar(calendar_data)
 
+                # Mark the task as scheduled
                 tasks_data[task_id]["scheduled"] = True
                 save_tasks(tasks_data)
                 console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
@@ -197,6 +201,7 @@ def schedule_task():
             console.print("[bold red]Invalid task ID! Please enter a valid task ID.[/bold red]")
     except ValueError:
         console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
+
 
 if __name__ == "__main__":
     while True:
