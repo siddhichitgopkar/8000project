@@ -134,7 +134,6 @@ def delete_task():
             console.print("[bold red]Invalid task ID![/bold red]")
     except ValueError:
         console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
-
 def schedule_task():
     """Schedule a task in the calendar."""
     from my_calendar.my_calendar import load_calendar, save_calendar  # Local import to avoid circular dependency
@@ -167,10 +166,11 @@ def schedule_task():
                 week_start = datetime.now() - timedelta(days=datetime.now().weekday())
                 task_day = week_start + timedelta(days=days_of_week[day])
 
+                # Set the start time to 8 AM if auto-scheduling
                 if specified_time:
                     start_time = datetime.combine(task_day, specified_time)
                 else:
-                    start_time = datetime.combine(task_day, datetime.now().time() if task_day.date() == datetime.now().date() else datetime.min.time())
+                    start_time = datetime.combine(task_day, datetime.min.time()).replace(hour=8)
                     if start_time < datetime.now():
                         start_time = datetime.now() + timedelta(minutes=1)
 

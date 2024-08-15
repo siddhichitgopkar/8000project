@@ -71,6 +71,39 @@ def open_note_in_editor(file_path):
     except Exception as e:
         console.print(f"[bold red]Failed to open editor: {e}[/bold red]")
 
+def modify_note():
+    """Modify an existing note."""
+    display_folders()
+    folder = console.input("[#FC6C85]Enter folder name containing the note to modify: [/#FC6C85]")
+    folder_path = os.path.join(notes_directory, folder)
+    if not os.path.exists(folder_path):
+        console.print("[bold red]Folder not found![/bold red]")
+        return
+
+    # Display available notes in the selected folder
+    notes = [f[:-3] for f in os.listdir(folder_path) if f.endswith('.md')]
+    if not notes:
+        console.print("[bold red]No notes found in this folder.[/bold red]")
+        return
+
+    console.print(f"[bold #FC6C85]Available notes in {folder}:[/bold #FC6C85]")
+    for i, note in enumerate(notes, 1):
+        console.print(f"{i}. {note}")
+
+    # Ask the user to choose a note by its number
+    note_choice = console.input("[#FC6C85]Enter the number of the note you want to modify: [/#FC6C85]")
+    try:
+        note_index = int(note_choice) - 1
+        if 0 <= note_index < len(notes):
+            title = notes[note_index]
+            file_path = os.path.join(folder_path, f"{title}.md")
+            console.print(f"[bold #FC6C85]Opening note '{title}' for modification.[/bold #FC6C85]")
+            open_note_in_editor(file_path)
+        else:
+            console.print("[bold red]Invalid selection. Please enter a valid number.[/bold red]")
+    except ValueError:
+        console.print("[bold red]Invalid input! Please enter the number corresponding to the note.[/bold red]")
+
 def delete_note():
     """Delete an existing note."""
     display_folders()

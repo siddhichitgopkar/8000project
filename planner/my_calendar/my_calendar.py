@@ -39,7 +39,6 @@ def save_calendar(calendar_data):
             ], f)
     except IOError as e:
         console.print(f"[bold red]Error saving calendar data: {e}[/bold red]")
-
 def display_calendar(week_start):
     """Display the weekly calendar."""
     calendar_data = load_calendar()
@@ -63,10 +62,12 @@ def display_calendar(week_start):
             for event in calendar_data:
                 if event["start_time"] <= time_slot_start < event["end_time"]:
                     event_display = event["title"]
-                    style = "bold white on #FF69B4"  # Default style
-
-                    if event.get("completed", False):
+                    if event["end_time"] < datetime.now():
+                        style = "bold white on #86575B"  # Light grey for past events
+                    elif event.get("completed", False):
                         style = "bold white on #D87093"  # Darker pink for completed tasks
+                    else:
+                        style = "bold white on #FF69B4"  # Default style for ongoing/upcoming events
 
                     if event_display in ongoing_events and ongoing_events[event_display] == event["start_time"]:
                         block = f"[{style}]{' ' * 18}[/{style}]"
@@ -79,7 +80,6 @@ def display_calendar(week_start):
         table.add_row(*row)
     
     console.print(table)
-
 def display_today():
     """Display today's calendar events and tasks."""
     from tasks.tasks import load_tasks  # Local import to avoid circular dependency
@@ -104,10 +104,12 @@ def display_today():
         for event in calendar_data:
             if event["start_time"].date() == today and event["start_time"] <= time_slot_start < event["end_time"]:
                 event_display = event["title"]
-                style = "bold white on #FF69B4"  # Default style
-
-                if event.get("completed", False):
+                if event["end_time"] < datetime.now():
+                    style = "bold white on #D3D3D3"  # Light grey for past events
+                elif event.get("completed", False):
                     style = "bold white on #D87093"  # Darker pink for completed tasks
+                else:
+                    style = "bold white on #FF69B4"  # Default style for ongoing/upcoming events
 
                 if event_display in ongoing_events and ongoing_events[event_display] == event["start_time"]:
                     block = f"[{style}]{' ' * 28}[/{style}]"

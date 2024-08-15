@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.table import Table
 from my_calendar.my_calendar import display_calendar, add_event, modify_event, remove_event, display_today
 from tasks.tasks import display_tasks, add_task, modify_task, mark_task_done, delete_task, schedule_task
-from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder
+from notes.notes import display_folders, display_notes_tree, new_folder, new_note, delete_note, delete_folder, modify_note
 from habits.habits import display_habits, add_habit, delete_habit, mark_habit_done
 from students.students import display_students, add_student, delete_student, mark_attendance, display_receipts
 from deadlines.deadlines import display_deadlines, add_deadline
@@ -79,7 +79,7 @@ def main():
                     break
         elif choice == "notes":
             while True:
-                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (newfolder, newnote, deletefolder, deletenote, show, back)")
+                console.print("[bold #FC6C85]Options:[/bold #FC6C85] (newfolder, newnote, modify, deletefolder, deletenote, show, back)")
                 note_choice = console.input("[#FC6C85]Enter your choice: [/#FC6C85]")
                 if note_choice == "newfolder":
                     new_folder()
@@ -93,6 +93,9 @@ def main():
                     display_notes_tree()
                 elif note_choice == "back":
                     break
+                elif note_choice == "modify":
+                    modify_note()
+
         elif choice == "habits":
             while True:
                 display_habits()
