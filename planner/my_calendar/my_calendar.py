@@ -39,8 +39,8 @@ def save_calendar(calendar_data):
             ], f)
     except IOError as e:
         console.print(f"[bold red]Error saving calendar data: {e}[/bold red]")
+
 def display_calendar(week_start):
-    """Display the weekly calendar."""
     calendar_data = load_calendar()
     table = Table(title="Weekly Calendar", show_lines=True, style="bold #FC6C85")
     table.add_column("Time", style="#FC6C85", width=10)
@@ -60,7 +60,7 @@ def display_calendar(week_start):
             time_slot_end = time_slot_start + timedelta(minutes=30)
 
             for event in calendar_data:
-                if event["start_time"] <= time_slot_start < event["end_time"]:
+                if event["start_time"].date() == day.date() and event["start_time"] <= time_slot_start < event["end_time"]:
                     event_display = event["title"]
                     if event["end_time"] < datetime.now():
                         style = "bold white on #86575B"  # Light grey for past events
@@ -80,6 +80,7 @@ def display_calendar(week_start):
         table.add_row(*row)
     
     console.print(table)
+
 def display_today():
     """Display today's calendar events and tasks."""
     from tasks.tasks import load_tasks  # Local import to avoid circular dependency
@@ -105,7 +106,7 @@ def display_today():
             if event["start_time"].date() == today and event["start_time"] <= time_slot_start < event["end_time"]:
                 event_display = event["title"]
                 if event["end_time"] < datetime.now():
-                    style = "bold white on #D3D3D3"  # Light grey for past events
+                    style = "bold white on #86575B"  # Light grey for past events
                 elif event.get("completed", False):
                     style = "bold white on #D87093"  # Darker pink for completed tasks
                 else:
@@ -206,24 +207,52 @@ def modify_event():
             console.print("[bold red]Invalid event ID![/bold red]")
     except ValueError:
         console.print("[bold red]Invalid input! Please enter a valid event ID.[/bold red]")
-
 def remove_event():
     """Remove an event from the calendar."""
     calendar_data = load_calendar()
-    display_event_list()
+    unique_events = {}
+
+    # Group events by title, only keeping the first instance of each recurring event
+    for event in calendar_data:
+        if event["title"] not in unique_events:
+            unique_events[event["title"]] = event
+
+    # Display the unique events
+    for i, (title, event) in enumerate(unique_events.items()):
+        console.print(f"[{i}] {event['title']} on {event['start_time'].strftime('%A %I:%M %p')} to {event['end_time'].strftime('%I:%M %p')}")
+
     try:
         event_id = int(console.input("[#FC6C85]Enter event ID to remove: [/#FC6C85]"))
-        if 0 <= event_id < len(calendar_data):
-            del calendar_data[event_id]
-            save_calendar(calendar_data)
-            console.print("[bold #FC6C85]Event removed successfully![/bold #FC6C85]")
+        title_to_remove = list(unique_events.keys())[event_id]
+
+        # Find all events with the same title
+        events_to_remove = [event for event in calendar_data if event["title"] == title_to_remove]
+
+        if len(events_to_remove) > 1:
+            console.print(f"[bold yellow]This event has {len(events_to_remove)} occurrences.[/bold yellow]")
+            remove_choice = console.input("[#FC6C85]Do you want to remove all occurrences? (yes/no): [/#FC6C85]").strip().lower()
+
+            if remove_choice == "yes":
+                calendar_data = [event for event in calendar_data if event["title"] != title_to_remove]
+            else:
+                console.print(f"[bold yellow]Removing only the first occurrence.[/bold yellow]")
+                calendar_data.remove(events_to_remove[0])
         else:
-            console.print("[bold red]Invalid event ID![/bold red]")
-    except ValueError:
+            calendar_data.remove(events_to_remove[0])
+
+        save_calendar(calendar_data)
+        console.print("[bold #FC6C85]Event removed successfully![/bold #FC6C85]")
+    except (ValueError, IndexError):
         console.print("[bold red]Invalid input! Please enter a valid event ID.[/bold red]")
 
 def display_event_list():
-    """Display a list of all events."""
+    """Display a list of all events, grouping recurring events by title."""
     calendar_data = load_calendar()
+    unique_events = {}
+    
     for i, event in enumerate(calendar_data):
+        if event["title"] not in unique_events:
+            unique_events[event["title"]] = event
+    
+    for i, (title, event) in enumerate(unique_events.items()):
         console.print(f"[{i}] {event['title']} on {event['start_time'].strftime('%A %I:%M %p')} to {event['end_time'].strftime('%I:%M %p')}")

@@ -4,3 +4,10 @@ long contect -> extension of tokens from 8k to 128k
 other perspectives for trustworthiness-> machine integrity, hallucination (model generates something thats not real like asking who is president in 2025 and itll just generate a random answer); 
 avoid hallucination by providing it with knowledge - give it long paragraph or incremental learning to expand training data but thats costly 
 
+presentations:
+ML.ICML.NeurLPS.ICLR
+NLP.ACL.EMNLP.NAACCL
+Security conferences: S&.CCS.Usinix.NDSS
+
+
+
