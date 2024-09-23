@@ -145,109 +145,6 @@ def delete_task():
             console.print("[bold red]Invalid task ID! Please enter a valid task ID.[/bold red]")
     except ValueError:
         console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
-"""
-def schedule_task():
-
-    from my_calendar.my_calendar import load_calendar, save_calendar  # Local import to avoid circular dependency
-
-    tasks_data = load_tasks()
-    calendar_data = load_calendar()
-    display_tasks()
-
-    try:
-        task_id = int(console.input("[#FC6C85]Enter task ID to schedule: [/#FC6C85]"))
-        if 0 <= task_id < len(tasks_data):
-            task = tasks_data[task_id]
-            title = task["title"]
-            day = task["day"].capitalize()
-            task_duration = timedelta(minutes=int(task["time"]))
-            recurrence = task["recurrence"]
-
-            # If the task is already scheduled, remove it from the calendar
-            for event in calendar_data[:]:
-                if event["title"] == title:
-                    calendar_data.remove(event)
-
-            specified_time = console.input("[#FC6C85]Enter specific time to schedule (e.g., 2:30 PM) or leave empty for auto-schedule: [/#FC6C85]").strip()
-            if specified_time:
-                try:
-                    specified_time = datetime.strptime(specified_time, "%I:%M %p").time()
-                except ValueError:
-                    console.print("[bold red]Invalid time format! Please enter time as e.g., 2:30 PM[/bold red]")
-                    return
-            else:
-                specified_time = None
-
-            days_of_week = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
-            if day in days_of_week:
-                today = datetime.now().date()
-                current_weekday = today.weekday()
-                task_day_offset = days_of_week[day] - current_weekday
-
-                if task_day_offset < 0 or (task_day_offset == 0 and specified_time and datetime.combine(today, specified_time) < datetime.now()):
-                    task_day_offset += 7  # Move to the next week's same day if it's in the past or later today
-
-                task_day = today + timedelta(days=task_day_offset)
-
-                # Set the start time to 8 AM if auto-scheduling
-                if specified_time:
-                    start_time = datetime.combine(task_day, specified_time)
-                else:
-                    start_time = datetime.combine(task_day, datetime.min.time()).replace(hour=8)
-                    if start_time < datetime.now():
-                        start_time = datetime.now() + timedelta(minutes=1)
-
-                # Align the start_time to the start of a 30-minute block
-                start_time = start_time.replace(minute=(start_time.minute // 30) * 30, second=0, microsecond=0)
-                end_time = start_time + task_duration
-
-                while True:
-                    # Check for conflicts in the same block
-                    block_events = [
-                        event for event in calendar_data
-                        if event["start_time"] == start_time and event["end_time"] == start_time + timedelta(minutes=30)
-                    ]
-
-                    # Calculate the total occupied time in the block
-                    occupied_time = sum(
-                        (event["end_time"] - event["start_time"]).seconds // 60
-                        for event in block_events
-                    )
-
-                    # If there's enough space in the block, schedule the task
-                    if occupied_time + task["time"] <= 30:
-                        if block_events:
-                            # Append to existing event block
-                            block_events[0]["title"] += f", {title}"
-                            block_events[0]["end_time"] = start_time + timedelta(minutes=30)  # Keep block end time consistent
-                        else:
-                            # Create a new event in this block
-                            calendar_data.append({
-                                "title": title,
-                                "start_time": start_time,
-                                "end_time": start_time + task_duration,
-                                "recurrence": recurrence,
-                                "completed": False
-                            })
-                        break
-                    else:
-                        # Move to the next available 30-minute block
-                        start_time += timedelta(minutes=30)
-                        end_time = start_time + task_duration
-
-                save_calendar(calendar_data)
-
-                # Mark the task as scheduled
-                tasks_data[task_id]["scheduled"] = True
-                save_tasks(tasks_data)
-                console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
-            else:
-                console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
-        else:
-            console.print("[bold red]Invalid task ID! Please enter a valid task ID.[/bold red]")
-    except ValueError:
-        console.print("[bold red]Invalid input! Please enter a valid task ID.[/bold red]")
-"""
 def schedule_task():
     """Schedule or reschedule a task in the calendar."""
     from my_calendar.my_calendar import load_calendar, save_calendar  # Local import to avoid circular dependency
@@ -301,54 +198,38 @@ def schedule_task():
 
                 # Align the start_time to the start of a 30-minute block
                 start_time = start_time.replace(minute=(start_time.minute // 30) * 30, second=0, microsecond=0)
-                block_end_time = start_time + timedelta(minutes=30)
 
-                while True:
-                    # Find the block for this time slot, if it exists
-                    block_events = [
-                        event for event in calendar_data
-                        if event["start_time"] < block_end_time and event["end_time"] > start_time
-                    ]
+                while start_time.hour < 23:
+                    block_end_time = start_time + timedelta(minutes=30)
 
-                    # Calculate the total occupied time in the block
-                    occupied_time = sum(
-                        (event["end_time"] - event["start_time"]).seconds // 60
-                        for event in block_events
-                    )
+                    # Check for overlap with existing events
+                    conflict = False
+                    for event in calendar_data:
+                        if (event["start_time"] < block_end_time and event["end_time"] > start_time):
+                            conflict = True
+                            break
 
-                    # If there's enough space in the block, schedule the task
-                    if occupied_time + task["time"] <= 30:
-                        if block_events:
-                            # Find the next available time slot within the block
-                            available_start_time = start_time + timedelta(minutes=occupied_time)
-                            calendar_data.append({
-                                "title": title,
-                                "start_time": available_start_time,
-                                "end_time": available_start_time + task_duration,
-                                "recurrence": recurrence,
-                                "completed": False
-                            })
-                        else:
-                            # Create a new event in this block
-                            calendar_data.append({
-                                "title": title,
-                                "start_time": start_time,
-                                "end_time": start_time + task_duration,
-                                "recurrence": recurrence,
-                                "completed": False
-                            })
+                    if not conflict:
+                        # Schedule the task in the current block
+                        calendar_data.append({
+                            "title": title,
+                            "start_time": start_time,
+                            "end_time": start_time + task_duration,
+                            "recurrence": recurrence,
+                            "completed": False
+                        })
+                        console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully at {start_time.strftime('%I:%M %p')}![/bold #FC6C85]")
                         break
                     else:
                         # Move to the next available 30-minute block
                         start_time += timedelta(minutes=30)
-                        block_end_time = start_time + timedelta(minutes=30)
+
+                else:
+                    console.print("[bold red]Could not find an available slot for scheduling today.[/bold red]")
 
                 save_calendar(calendar_data)
-
-                # Mark the task as scheduled
                 tasks_data[task_id]["scheduled"] = True
                 save_tasks(tasks_data)
-                console.print(f"[bold #FC6C85]Task '{title}' scheduled successfully![/bold #FC6C85]")
             else:
                 console.print("[bold red]Invalid day! Please enter a valid day of the week.[/bold red]")
         else:
